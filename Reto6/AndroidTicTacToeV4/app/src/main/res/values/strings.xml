@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Android TicTacToe</string>
+    <string name="difficulty_choose">Choose a difficulty level:</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_harder">Harder</string>
+    <string name="difficulty_expert">Expert</string>
+    <string name="quit_question">U sure u leaving?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+</resources>
