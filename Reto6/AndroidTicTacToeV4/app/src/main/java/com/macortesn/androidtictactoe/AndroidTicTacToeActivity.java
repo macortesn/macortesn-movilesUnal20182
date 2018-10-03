@@ -3,6 +3,7 @@ package com.macortesn.androidtictactoe;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.MediaPlayer;
 
@@ -26,14 +27,31 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
     private TextView mInfoEmptyTextView;
     static final int DIALOG_DIFFICULTY_ID = 0;
     static final int DIALOG_QUIT_ID = 1;
+    static final int DIALOG_RESET_ID = 2;
     private boolean mGameOver;
 
     private BoardView mBoardView;
 
 
+
+    private TextView mNumberHuman;
+    private TextView mNumberTie;
+    private TextView mNumberAndroid;
+
+
+
     private MediaPlayer mHumanMediaPlayer;
     private MediaPlayer mComputerMediaPlayer;
     private MediaPlayer mStart;
+
+    private int mAndroidWins;
+    private int mHumanWins;
+    private int mTies;
+    private boolean mGoFirst;
+    private boolean mInitialSound;
+
+    private SharedPreferences mPrefs;
+
 
 
     @Override
@@ -63,36 +81,61 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
     private void results(){
         int winner = mGame.checkForWinner();
 
-        if (winner == 0) {
-            mInfoTextView.setText("It's Android's turn.");
-
-            winner = mGame.checkForWinner();
-        }
-
-        if (winner == 0)
+        if (winner == 0 && mGoFirst){
             mInfoTextView.setText("It's your turn.");
+            winner = mGame.checkForWinner();
+            mGoFirst=false;
+        }
+        else if (winner == 0 && !mGoFirst){
+            mInfoTextView.setText("It's your turn.");
+            winner = mGame.checkForWinner();
+            mGoFirst=true;
+        }
         else if (winner == 1) {
+            mTies++;
+            mNumberTie.setText("Ties : " + mTies);
             mInfoTextView.setText("It's a tie!");
             mGameOver=true;
         }
         else if (winner == 2) {
+            mHumanWins++;
+            mNumberHuman.setText("Human : " + mHumanWins);
             mInfoTextView.setText("You won!");
             mGameOver=true;
         }
         else {
+            mAndroidWins++;
+            mNumberAndroid.setText("Android : " + mAndroidWins);
             mInfoTextView.setText("Android won!");
             mGameOver=true;
         }
+
     }
+
+    private void resetScore(){
+
+        mTies=0;
+        mNumberTie.setText("Ties : " + mTies);
+
+        mHumanWins=0;
+        mNumberHuman.setText("Human : " + mHumanWins);
+
+        mAndroidWins=0;
+        mNumberAndroid.setText("Android : " + mAndroidWins);
+
+    }
+
 
 
 
     private View.OnTouchListener mTouchListener=new View.OnTouchListener() {
         @Override
-        public boolean onTouch(View v, MotionEvent event) {
+        public boolean onTouch(final View v, MotionEvent event) {
+            v.setEnabled(true);
             int col = (int) event.getX() / mBoardView.getBoardCellWidth();
             int row = (int) event.getY() / mBoardView.getBoardCellHeight();
             int pos = row * 3 + col;
+
 
             if (!mGameOver && setMove(TicTacToeGame.HUMAN_PLAYER, pos))	{
                 mHumanMediaPlayer.start( );
@@ -100,8 +143,12 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
                 // If no winner yet, let the computer make a move
 
                 int winner = mGame.checkForWinner( );
-                if( winner == 0 ){
 
+                v.setEnabled(false);
+
+
+
+                if( winner == 0 ){
                     Handler handler = new Handler();
                     handler.postDelayed(new Runnable() {
                         public void run() {
@@ -110,14 +157,19 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
                             mComputerMediaPlayer.start( );
 
                             mBoardView.invalidate();
+
                             results();
                         }
                     }, 2000);
-
-
+                    handler.postDelayed(new Runnable() {
+                        public void run() {
+                            v.setEnabled(true);
+                        }
+                    }, 2000);
 
                 }
                 else {
+
                     results();
                     mBoardView.invalidate();
                 }
@@ -129,17 +181,26 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
 
     private void startNewGame(){
 
+
+        mNumberTie.setText("Ties : " + mTies);
+
+        mNumberHuman.setText("Human : " + mHumanWins);
+
+        mNumberAndroid.setText("Android : " + mAndroidWins);
+        mInitialSound=true;
+
         mGame.clearBoard();
         mBoardView.invalidate();
         mGameOver=false;
+        mGoFirst=true;
         mInfoTextView.setText("You go first.");
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             public void run() {
-
-                mStart.start( );
-
-
+                if (mInitialSound) {
+                    mStart.start();
+                    mInitialSound = false;
+                }
             }
         }, 2000);
 
@@ -165,6 +226,9 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
                 return true;
             case R.id.quit:
                 showDialog(DIALOG_QUIT_ID);
+                return true;
+            case R.id.reset:
+                showDialog(DIALOG_RESET_ID);
                 return true;
         }
         return false;
@@ -244,27 +308,114 @@ public class AndroidTicTacToeActivity extends AppCompatActivity {
                 dialog = builder.create();
 
                 break;
+
+            case DIALOG_RESET_ID:
+                // Create the quit confirmation dialog
+
+                builder.setMessage(R.string.quit_question)
+                        .setCancelable(false)
+                        .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                AndroidTicTacToeActivity.this.resetScore();
+                            }
+                        })
+                        .setNegativeButton(R.string.no, null);
+                dialog = builder.create();
+
+                break;
         }
         return dialog;
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putCharArray("board", mGame.getBoardState());
+        outState.putBoolean("mGameOver", mGameOver);
+        outState.putBoolean("mInitialSound", mInitialSound);
+        outState.putInt("mHumanWins", Integer.valueOf(mHumanWins));
+        outState.putInt("mAndroidWins", Integer.valueOf(mAndroidWins));
+        outState.putInt("mTies", Integer.valueOf(mTies));
+        outState.putCharSequence("info", mInfoTextView.getText());
+        outState.putBoolean("mGoFirst", mGoFirst);
+    }
 
 
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        mInitialSound=savedInstanceState.getBoolean("mInitialSound");
+        mGame.setBoardState(savedInstanceState.getCharArray("board"));
+        mGameOver = savedInstanceState.getBoolean("mGameOver");
+        mInfoTextView.setText(savedInstanceState.getCharSequence("info"));
+        mHumanWins = savedInstanceState.getInt("mHumanWins");
+        mAndroidWins = savedInstanceState.getInt("mAndroidWins");
+        mTies = savedInstanceState.getInt("mTies");
+        mGoFirst = savedInstanceState.getBoolean("mGoFirst");
+    }
+
+    private void displayScores() {
+        mNumberAndroid.setText("Android : " + Integer.toString(mAndroidWins));
+        mNumberHuman.setText("Human : " + Integer.toString(mHumanWins));
+        mNumberTie.setText("Ties : " + Integer.toString(mTies));
+    }
+
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        // Save the current scores
+        SharedPreferences.Editor ed = mPrefs.edit();
+        ed.putInt("mHumanWins", mHumanWins);
+        ed.putInt("mAndroidWins", mAndroidWins);
+        ed.putInt("mTies", mTies);
+
+        //for(int i=0; i<9;i++){
+            //ed.putString(String.valueOf(i+1) , Character.toString(mGame.getBoardOccupant(i)));
+        //}
+
+        ed.commit();
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_android_tic_tac_toe);
 
+        mGame = new TicTacToeGame();
 
+        mPrefs=getSharedPreferences("ttt_prefs",MODE_PRIVATE);
+
+        // Restore the scores
+        mHumanWins = mPrefs.getInt("mHumanWins", 0);
+        mAndroidWins = mPrefs.getInt("mAndroidWins", 0);
+        mTies = mPrefs.getInt("mTies", 0);
+
+
+        //for(int i=0; i<9;i++){
+           //char tmp= mPrefs.getString(String.valueOf(i+1) ,String.valueOf(i+1)).charAt(0);
+          // mGame.setMove(tmp, i);
+        //}
+
+        mNumberHuman = (TextView) findViewById(R.id.humani);
+        mNumberTie = (TextView) findViewById(R.id.tiei);
+        mNumberAndroid = (TextView) findViewById(R.id.androidi);
 
         mInfoTextView = (TextView) findViewById(R.id.information);
-        mInfoEmptyTextView = (TextView) findViewById(R.id.empty);
-        mGame = new TicTacToeGame();
+
         mBoardView=(BoardView) findViewById(R.id.board);
         mBoardView.setGame(mGame);
         mBoardView.setOnTouchListener( mTouchListener );
-
-
         startNewGame();
+
+
+
+
+
+
+
+
     }
 }

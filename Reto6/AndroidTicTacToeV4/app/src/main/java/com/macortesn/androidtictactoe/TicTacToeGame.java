@@ -6,6 +6,8 @@ package com.macortesn.androidtictactoe;/* TicTacToeConsole.java
  * is X and the computer is O.
  */
 
+import android.content.SharedPreferences;
+
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.List;
@@ -25,6 +27,8 @@ public class TicTacToeGame {
     private DifficultyLevel mDifficultyLevel = DifficultyLevel.Expert;
 
     private Random mRand = new Random();
+
+
 
 
 
@@ -52,7 +56,14 @@ public class TicTacToeGame {
         mDifficultyLevel = difficultyLevel;
     }
 
+    public char[] getBoardState(){
+        return mBoard;
+    }
 
+
+    public void setBoardState(char[] board){
+        mBoard = board.clone();
+    }
 
     private void displayBoard()	{
         System.out.println();
@@ -210,6 +221,7 @@ public class TicTacToeGame {
         if (location>-1 && location <9){
             if (player == HUMAN_PLAYER){
                 mBoard[location]=HUMAN_PLAYER;
+
                 return true;
             }
             else{

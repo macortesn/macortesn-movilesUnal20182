@@ -16,6 +16,20 @@
         android:layout_height="300dp"
         android:layout_marginTop="5dp"/>
 
+    <TextView android:id="@+id/humani"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"    			android:text="Human"
+        android:gravity="center_horizontal" 		      android:layout_marginTop="20dp"
+        android:textSize="20dp" />
+    <TextView android:id="@+id/tiei"    	           	android:layout_width="fill_parent"
+        android:layout_height="wrap_content"    			android:text="Ties"
+        android:gravity="center_horizontal" 		      android:layout_marginTop="20dp"
+        android:textSize="20dp" />
+    <TextView android:id="@+id/androidi"    	           	android:layout_width="fill_parent"
+        android:layout_height="wrap_content"    			android:text="Android"
+        android:gravity="center_horizontal" 		      android:layout_marginTop="20dp"
+        android:textSize="20dp" />
+
 
     <TextView android:id="@+id/information"    	           	android:layout_width="fill_parent"
         android:layout_height="wrap_content"    			android:text="info"
